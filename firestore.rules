@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserEmail() {
+      return isAuthenticated() && request.auth.token.email != null 
+        ? request.auth.token.email.lower() 
+        : "";
+    }
+
+    function getUserDoc() {
+      let email = getUserEmail();
+      return email != "" && exists(/databases/$(database)/documents/users/$(email))
+        ? get(/databases/$(database)/documents/users/$(email)).data
+        : {};
+    }
+
+    function isApproved() {
+      let user = getUserDoc();
+      return user.get('isApproved', false) == true || getUserEmail() == 'gwdmpm@gmail.com';
+    }
+
+    function isAdmin() {
+      let user = getUserDoc();
+      let role = user.get('role', '').lower();
+      return role == 'admin' || getUserEmail() == 'gwdmpm@gmail.com';
+    }
+
+    function isEngineer() {
+      let user = getUserDoc();
+      let role = user.get('role', '').lower();
+      return role == 'engineer';
+    }
+
+    function isScientist() {
+      let user = getUserDoc();
+      let role = user.get('role', '').lower();
+      return role == 'scientist';
+    }
+
+    function isOwner() {
+      // Robust ownership check for both existing resources and new requests
+      let creatorId = resource != null ? resource.data.get('uploadedBy', '') : request.resource.data.get('uploadedBy', '');
+      return isAuthenticated() && (
+        request.auth.uid == creatorId || 
+        getUserEmail() == creatorId.lower()
+      );
+    }
+
+    // --- COLLECTION RULES ---
+
+    match /groundwaterReports/{reportId} {
+      // Anyone can fetch and list reports
+      allow read: if true;
+      
+      // Approved staff can create technical records based on their role
+      allow create: if isApproved() && (isAdmin() || isScientist() || isEngineer());
+      
+      // Only Admins or the original creator can modify/delete
+      allow update, delete: if isAdmin() || (isApproved() && isOwner());
+    }
+
+    match /appSettings/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /employees/{employeeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /attendance_logs/{recordId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isApproved();
+    }
+
+    match /users/{userEmail} {
+      allow get: if true; 
+      allow list: if isAuthenticated();
+      allow create, update: if isAdmin() || (isAuthenticated() && getUserEmail() == userEmail.lower());
+      allow delete: if isAdmin();
+    }
+  }
+}

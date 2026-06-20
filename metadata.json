@@ -1,0 +1,7 @@
+{
+  "name": "GWD Sites New_20.06.26_1",
+  "description": "A minimalist, featureless application providing a completely empty interface for testing, focus, or starting from scratch.",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
