@@ -6,7 +6,7 @@
     "dev": "npx next dev -p 3000",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "NODE_ENV=production NODE_OPTIONS='--max-old-space-size=1024' npx next build",
+    "build": "NODE_ENV=production NODE_OPTIONS='--max-old-space-size=4096' npx next build",
     "start": "npx next start",
     "lint": "npx next lint",
     "typecheck": "tsc --noEmit"
